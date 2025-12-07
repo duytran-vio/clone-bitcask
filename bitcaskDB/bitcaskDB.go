@@ -1,6 +1,7 @@
 package bitcaskdb
 
 import (
+	"strconv"
 	"strings"
 )
 
@@ -77,12 +78,13 @@ func (db *BitcaskDB) Put(key, value string) error {
 	newEntry := NewEntry(key, value)
 	if (db.currentActiveFile == nil) || (!db.currentActiveFile.canAppend(newEntry.Size())) {
 		newFileID := len(db.files)
-		newFilePath := FILE_BASE_PATH + "datafile_" + string(rune(newFileID))
+		newFilePath := FILE_BASE_PATH + "datafile_" + strconv.Itoa(newFileID) + ".db"
 		newActiveFile := NewBitcaskFile(newFileID, newFilePath)
 		db.files = append(db.files, newActiveFile)
 		db.currentActiveFile = newActiveFile
 	}
 
+	entryPosition := db.currentActiveFile.Size
 	err := db.currentActiveFile.Append(newEntry.encode())
 	if err != nil {
 		return err
@@ -90,7 +92,7 @@ func (db *BitcaskDB) Put(key, value string) error {
 
 	db.keyDir[key] = KeyDirValue{
 		FileID:   db.currentActiveFile.FileID,
-		Position: db.currentActiveFile.Size - int64(newEntry.Size()),
+		Position: entryPosition,
 		Size:     newEntry.Size(),
 	}
 	return nil

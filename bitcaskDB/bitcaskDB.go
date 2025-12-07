@@ -4,6 +4,10 @@ import (
 	"strings"
 )
 
+const (
+	FILE_BASE_PATH = "./data/"
+)
+
 type BitcaskDB struct {
 	keyDir            map[string]KeyDirValue // Simplified key directory
 	files             []*BitcaskFile
@@ -70,7 +74,25 @@ func (db *BitcaskDB) Get(key string) (string, error) {
 }
 
 func (db *BitcaskDB) Put(key, value string) error {
-	// Placeholder implementation
+	newEntry := NewEntry(key, value)
+	if (db.currentActiveFile == nil) || (!db.currentActiveFile.canAppend(newEntry.Size())) {
+		newFileID := len(db.files)
+		newFilePath := FILE_BASE_PATH + "datafile_" + string(rune(newFileID))
+		newActiveFile := NewBitcaskFile(newFileID, newFilePath)
+		db.files = append(db.files, newActiveFile)
+		db.currentActiveFile = newActiveFile
+	}
+
+	err := db.currentActiveFile.Append(newEntry.encode())
+	if err != nil {
+		return err
+	}
+
+	db.keyDir[key] = KeyDirValue{
+		FileID:   db.currentActiveFile.FileID,
+		Position: db.currentActiveFile.Size - int64(newEntry.Size()),
+		Size:     newEntry.Size(),
+	}
 	return nil
 }
 

@@ -14,9 +14,9 @@ func NewBitcaskFile(fileID int, filePath string) *BitcaskFile {
 	}
 }
 
-func (bf *BitcaskFile) Append(data []byte) (int, error) {
+func (bf *BitcaskFile) Append(data []byte) error {
 	// Placeholder for write logic
-	return 0, nil
+	return nil
 }
 
 func (bf *BitcaskFile) ReadAt(position int64, size int) ([]byte, error) {

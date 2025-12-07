@@ -1,7 +1,12 @@
 package bitcaskdb
 
 import (
+	"strconv"
 	"strings"
+)
+
+const (
+	FILE_BASE_PATH = "./data/"
 )
 
 type BitcaskDB struct {
@@ -70,7 +75,26 @@ func (db *BitcaskDB) Get(key string) (string, error) {
 }
 
 func (db *BitcaskDB) Put(key, value string) error {
-	// Placeholder implementation
+	newEntry := NewEntry(key, value)
+	if (db.currentActiveFile == nil) || (!db.currentActiveFile.canAppend(newEntry.Size())) {
+		newFileID := len(db.files)
+		newFilePath := FILE_BASE_PATH + "datafile_" + strconv.Itoa(newFileID) + ".db"
+		newActiveFile := NewBitcaskFile(newFileID, newFilePath)
+		db.files = append(db.files, newActiveFile)
+		db.currentActiveFile = newActiveFile
+	}
+
+	entryPosition := db.currentActiveFile.Size
+	err := db.currentActiveFile.Append(newEntry.encode())
+	if err != nil {
+		return err
+	}
+
+	db.keyDir[key] = KeyDirValue{
+		FileID:   db.currentActiveFile.FileID,
+		Position: entryPosition,
+		Size:     newEntry.Size(),
+	}
 	return nil
 }
 

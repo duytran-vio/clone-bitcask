@@ -1,6 +1,7 @@
 package bitcaskdb
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,6 +11,8 @@ const (
 	FILE_BASE_PATH  = "./data/"
 	TOMBSTONE_VALUE = "__TOMBSTONE__"
 )
+
+var ErrKeyNotFound = errors.New("key not found")
 
 type BitcaskDB struct {
 	keyDir            map[string]KeyDirValue // Simplified key directory
@@ -40,6 +43,9 @@ func (db *BitcaskDB) HandleCommand(input string) string {
 		key := parts[1]
 		value, err := db.Get(key)
 		if err != nil {
+			if errors.Is(err, ErrKeyNotFound) {
+				return err.Error() + "\nPlease input a existing key."
+			}
 			return "Error:" + err.Error()
 		} else {
 			return "Value:" + value
@@ -74,7 +80,7 @@ func (db *BitcaskDB) HandleCommand(input string) string {
 func (db *BitcaskDB) Get(key string) (string, error) {
 	keyDirValue, exists := db.keyDir[key]
 	if !exists {
-		return "", fmt.Errorf("cannot found key: %s", key)
+		return "", fmt.Errorf("get %q: %w", key, ErrKeyNotFound)
 	}
 
 	readFile := db.files[keyDirValue.FileID]

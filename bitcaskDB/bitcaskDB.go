@@ -1,12 +1,14 @@
 package bitcaskdb
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
 
 const (
-	FILE_BASE_PATH = "./data/"
+	FILE_BASE_PATH  = "./data/"
+	TOMBSTONE_VALUE = "__TOMBSTONE__"
 )
 
 type BitcaskDB struct {
@@ -70,11 +72,24 @@ func (db *BitcaskDB) HandleCommand(input string) string {
 }
 
 func (db *BitcaskDB) Get(key string) (string, error) {
-	// Placeholder implementation
-	return "value_of_" + key, nil
+	keyDirValue, exists := db.keyDir[key]
+	if !exists {
+		return "", fmt.Errorf("cannot found key: %s", key)
+	}
+
+	readFile := db.files[keyDirValue.FileID]
+	entryData, err := readFile.ReadAt(keyDirValue.Position, keyDirValue.Size)
+	if err != nil {
+		return "", err
+	}
+
+	return string(entryData), nil
 }
 
 func (db *BitcaskDB) Put(key, value string) error {
+	if value == TOMBSTONE_VALUE {
+		return fmt.Errorf("value cannot be tombstone value")
+	}
 	newEntry := NewEntry(key, value)
 	if (db.currentActiveFile == nil) || (!db.currentActiveFile.canAppend(newEntry.Size())) {
 		newFileID := len(db.files)
@@ -99,6 +114,10 @@ func (db *BitcaskDB) Put(key, value string) error {
 }
 
 func (db *BitcaskDB) Delete(key string) error {
-	// Placeholder implementation
+	err := db.Put(key, TOMBSTONE_VALUE)
+	if err != nil {
+		return err
+	}
+	delete(db.keyDir, key)
 	return nil
 }

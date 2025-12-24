@@ -1,6 +1,7 @@
 package bitcaskdb
 
 import (
+	"clone-bitcask/bitcaskDB/entry"
 	"errors"
 	"fmt"
 	"strconv"
@@ -14,17 +15,29 @@ const (
 
 var ErrKeyNotFound = errors.New("key not found")
 
-type BitcaskDB struct {
-	keyDir            map[string]KeyDirValue // Simplified key directory
-	files             []*BitcaskFile
-	currentActiveFile *BitcaskFile
+type StorageFile interface {
+	Append(data []byte) error
+	CanAppend(size int) bool
+	ReadAt(position int64, size int) ([]byte, error)
+	Size() int64
+	FileID() int
 }
 
-func NewBitcaskDB() *BitcaskDB {
-	newActiveFile := NewBitcaskFile(0, "")
+type FileFactory func(fileID int, filePath string) StorageFile
+
+type BitcaskDB struct {
+	fileFactory       FileFactory
+	keyDir            map[string]KeyDirValue // Simplified key directory
+	files             []StorageFile
+	currentActiveFile StorageFile
+}
+
+func NewBitcaskDB(fileFactory FileFactory) *BitcaskDB {
+	newActiveFile := fileFactory(0, "")
 	return &BitcaskDB{
+		fileFactory:       fileFactory,
 		keyDir:            make(map[string]KeyDirValue),
-		files:             []*BitcaskFile{newActiveFile},
+		files:             []StorageFile{newActiveFile},
 		currentActiveFile: newActiveFile,
 	}
 }
@@ -96,23 +109,23 @@ func (db *BitcaskDB) Put(key, value string) error {
 	if value == TOMBSTONE_VALUE {
 		return fmt.Errorf("value cannot be tombstone value")
 	}
-	newEntry := NewEntry(key, value)
-	if (db.currentActiveFile == nil) || (!db.currentActiveFile.canAppend(newEntry.Size())) {
+	newEntry := entry.NewEntry(key, value)
+	if (db.currentActiveFile == nil) || (!db.currentActiveFile.CanAppend(newEntry.Size())) {
 		newFileID := len(db.files)
 		newFilePath := FILE_BASE_PATH + "datafile_" + strconv.Itoa(newFileID) + ".db"
-		newActiveFile := NewBitcaskFile(newFileID, newFilePath)
+		newActiveFile := db.fileFactory(newFileID, newFilePath)
 		db.files = append(db.files, newActiveFile)
 		db.currentActiveFile = newActiveFile
 	}
 
-	entryPosition := db.currentActiveFile.Size
-	err := db.currentActiveFile.Append(newEntry.encode())
+	entryPosition := db.currentActiveFile.Size()
+	err := db.currentActiveFile.Append(newEntry.Encode())
 	if err != nil {
 		return err
 	}
 
 	db.keyDir[key] = KeyDirValue{
-		FileID:   db.currentActiveFile.FileID,
+		FileID:   db.currentActiveFile.FileID(),
 		Position: entryPosition,
 		Size:     newEntry.Size(),
 	}

@@ -1,4 +1,4 @@
-package bitcaskdb
+package entry
 
 import (
 	"encoding/binary"
@@ -31,6 +31,10 @@ func NewEntry(key, value string) *Entry {
 		panic("value size exceeds maximum limit")
 	}
 
+	if key == "" || value == "" {
+		panic("key and value must be non-empty")
+	}
+
 	return &Entry{
 		timestamp: time.Now().Unix(),
 		keySize:   len(key),
@@ -40,7 +44,7 @@ func NewEntry(key, value string) *Entry {
 	}
 }
 
-func (e *Entry) encode() []byte {
+func (e *Entry) Encode() []byte {
 	data := make([]byte, e.Size())
 
 	// Layout:

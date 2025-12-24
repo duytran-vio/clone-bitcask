@@ -1,4 +1,4 @@
-package bitcaskdb
+package entry
 
 import (
 	"encoding/binary"
@@ -40,7 +40,7 @@ func NewEntry(key, value string) *Entry {
 	}
 }
 
-func (e *Entry) encode() []byte {
+func (e *Entry) Encode() []byte {
 	data := make([]byte, e.Size())
 
 	// Layout:

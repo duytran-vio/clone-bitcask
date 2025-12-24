@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	Bitcaskdb "clone-bitcask/bitcaskDB"
+	BitcaskFile "clone-bitcask/bitcaskDB/bitcaskFile"
 	"fmt"
 	"os"
 	"strings"
@@ -12,7 +13,10 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("Bitcask CLI - Type 'QUIT' to exit")
 
-	bitcaskdb := Bitcaskdb.NewBitcaskDB()
+	fileFactory := func(fileID int, filePath string) Bitcaskdb.StorageFile {
+		return BitcaskFile.NewBitcaskFile(fileID, filePath)
+	}
+	bitcaskdb := Bitcaskdb.NewBitcaskDB(fileFactory)
 	for {
 		fmt.Print("> ")
 		if !scanner.Scan() {

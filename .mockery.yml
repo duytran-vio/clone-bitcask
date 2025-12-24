@@ -1,0 +1,16 @@
+all: true
+dir: '{{.InterfaceDir}}/mocks'
+filename: '{{.Mock}}{{.InterfaceName}}.go'
+force-file-write: true
+formatter: goimports
+generate: true
+include-auto-generated: false
+log-level: info
+structname: '{{.Mock}}{{.InterfaceName}}'
+pkgname: '{{.SrcPackageName}}'
+recursive: false
+require-template-schema-exists: true
+template: testify
+template-schema: '{{.Template}}.schema.json'
+packages:
+  clone-bitcask/bitcaskDB:

@@ -31,6 +31,10 @@ func NewEntry(key, value string) *Entry {
 		panic("value size exceeds maximum limit")
 	}
 
+	if key == "" || value == "" {
+		panic("key and value must be non-empty")
+	}
+
 	return &Entry{
 		timestamp: time.Now().Unix(),
 		keySize:   len(key),
